@@ -3,8 +3,7 @@ const APP = {
   currentPage: 'dashboard',
 
   init() {
-    // Seed demo data
-    DB.seed();
+    // App starts with clean slate — no demo data seeded
 
     // Set date in topbar
     this.updateDate();

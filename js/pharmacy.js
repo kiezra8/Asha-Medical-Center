@@ -94,27 +94,28 @@ function filterDrugs() {
 function openAddDrugModal(editId) {
   const d = editId ? DB.getDrug(editId) : null;
   const isEdit = !!d;
+  // Build category & unit lists from existing drugs (user-defined)
+  const drugs = DB.getDrugs();
+  const existingCats = [...new Set(drugs.map(x => x.category).filter(Boolean))];
+  const existingUnits = [...new Set(drugs.map(x => x.unit).filter(Boolean))];
   UI.modal.open(isEdit ? 'Edit Drug' : 'Add New Drug', `
     <div class="form-group"><label class="form-label">Drug Name *</label>
-      <input class="form-control" id="drName" value="${d?.name||''}" placeholder="e.g. Amoxicillin 500mg" /></div>
+      <input class="form-control" id="drName" value="${d?.name||''}" placeholder="e.g. Paracetamol 500mg" /></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Category</label>
-        <input class="form-control" id="drCat" value="${d?.category||''}" list="catList" placeholder="e.g. Antibiotic" />
-        <datalist id="catList">${['Antibiotic','Analgesic','Antimalarial','Antidiabetic','Antifungal','Antiviral',
-          'NSAID','Vitamin','Rehydration','Cardiovascular','Respiratory','Gastrointestinal']
-          .map(c=>`<option>${c}</option>`).join('')}</datalist></div>
+        <input class="form-control" id="drCat" value="${d?.category||''}" list="catList" placeholder="Type your own category" />
+        <datalist id="catList">${existingCats.map(c=>`<option>${c}</option>`).join('')}</datalist></div>
       <div class="form-group"><label class="form-label">Unit</label>
-        <input class="form-control" id="drUnit" value="${d?.unit||''}" list="unitList" placeholder="Tablet, Bottle..." />
-        <datalist id="unitList">${['Tablet','Capsule','Bottle','Sachet','Pack','Vial','Ampoule','Strip']
-          .map(u=>`<option>${u}</option>`).join('')}</datalist></div>
+        <input class="form-control" id="drUnit" value="${d?.unit||''}" list="unitList" placeholder="e.g. Tablet, Bottle..." />
+        <datalist id="unitList">${existingUnits.map(u=>`<option>${u}</option>`).join('')}</datalist></div>
     </div>
     <div class="form-row-3">
       <div class="form-group"><label class="form-label">Quantity</label>
         <input class="form-control" id="drQty" type="number" value="${d?.quantity||0}" min="0" /></div>
-      <div class="form-group"><label class="form-label">Sell Price</label>
-        <input class="form-control" id="drPrice" type="number" step="0.01" value="${d?.price||0}" /></div>
-      <div class="form-group"><label class="form-label">Cost Price</label>
-        <input class="form-control" id="drCost" type="number" step="0.01" value="${d?.costPrice||0}" /></div>
+      <div class="form-group"><label class="form-label">Sell Price (UGX)</label>
+        <input class="form-control" id="drPrice" type="number" step="1" value="${d?.price||0}" /></div>
+      <div class="form-group"><label class="form-label">Cost Price (UGX)</label>
+        <input class="form-control" id="drCost" type="number" step="1" value="${d?.costPrice||0}" /></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Min Stock Level</label>
@@ -199,6 +200,7 @@ function saveRestock(id) {
   const d = DB.getDrug(id);
   DB.updateDrug(id, {
     quantity: (d.quantity || 0) + qty,
+    totalStocked: (d.totalStocked || d.quantity || 0) + qty,
     costPrice: parseFloat(document.getElementById('restockCost').value) || d.costPrice,
     price: parseFloat(document.getElementById('restockPrice').value) || d.price,
     expiry: document.getElementById('restockExpiry').value || d.expiry

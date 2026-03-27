@@ -6,29 +6,16 @@ function renderSales() {
   const todayRev = DB.totalRevenue(DB.getToday());
   const weekRev = DB.totalRevenue(DB.getThisWeek());
   const monthRev = DB.totalRevenue(DB.getThisMonth());
+  const todayCount = DB.getToday().length;
+  const weekCount = DB.getThisWeek().length;
+  const monthCount = DB.getThisMonth().length;
   const el = document.getElementById('page-sales');
   el.innerHTML = `
     <div class="section-header">
       <div class="section-title">🛒 Sales & Billing</div>
       <button class="btn btn-primary" onclick="openNewSaleModal()">+ New Sale</button>
     </div>
-    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
-      <div class="stat-card" style="--gradient:linear-gradient(90deg,#00b4d8,#06d6a0)">
-        <div class="stat-icon">📆</div>
-        <div class="stat-value">${UI.fmt.currency(todayRev)}</div>
-        <div class="stat-label">Today</div>
-      </div>
-      <div class="stat-card" style="--gradient:linear-gradient(90deg,#f4a261,#e63946)">
-        <div class="stat-icon">📅</div>
-        <div class="stat-value">${UI.fmt.currency(weekRev)}</div>
-        <div class="stat-label">This Week</div>
-      </div>
-      <div class="stat-card" style="--gradient:linear-gradient(90deg,#a855f7,#3b82f6)">
-        <div class="stat-icon">📊</div>
-        <div class="stat-value">${UI.fmt.currency(monthRev)}</div>
-        <div class="stat-label">This Month</div>
-      </div>
-    </div>
+
     <div class="search-bar">
       <div class="search-input-wrap">
         <span class="search-icon">🔍</span>
@@ -38,11 +25,34 @@ function renderSales() {
       <button class="btn btn-outline" onclick="document.getElementById('saleDateFilter').value='';filterSales()">Clear</button>
       <button class="btn btn-outline" onclick="exportSales()">📥 Export</button>
     </div>
-    <div class="table-wrap">
+
+    <div class="table-wrap" style="margin-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0">
       <table>
         <thead><tr><th>Date & Time</th><th>Patient</th><th>Items</th><th>Total</th><th>Payment</th><th>Served By</th><th>Receipt</th></tr></thead>
         <tbody id="salesTableBody"></tbody>
       </table>
+    </div>
+
+    <!-- Period Totals Below Table -->
+    <div id="salesTotalsBar" style="background:var(--bg-card2);border:1px solid var(--border);border-top:none;border-bottom-left-radius:var(--radius);border-bottom-right-radius:var(--radius);padding:16px 20px">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Period Totals</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+        <div style="background:var(--bg-card);border-radius:var(--radius-sm);padding:14px;border:1px solid rgba(0,180,216,0.2)">
+          <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">📆 TODAY</div>
+          <div style="font-size:20px;font-weight:800;color:var(--primary)">${UI.fmt.currency(todayRev)}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${todayCount} transaction${todayCount!==1?'s':''}</div>
+        </div>
+        <div style="background:var(--bg-card);border-radius:var(--radius-sm);padding:14px;border:1px solid rgba(244,162,97,0.2)">
+          <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">📅 THIS WEEK</div>
+          <div style="font-size:20px;font-weight:800;color:var(--accent2)">${UI.fmt.currency(weekRev)}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${weekCount} transaction${weekCount!==1?'s':''}</div>
+        </div>
+        <div style="background:var(--bg-card);border-radius:var(--radius-sm);padding:14px;border:1px solid rgba(168,85,247,0.2)">
+          <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">📊 THIS MONTH</div>
+          <div style="font-size:20px;font-weight:800;color:#a855f7">${UI.fmt.currency(monthRev)}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${monthCount} transaction${monthCount!==1?'s':''}</div>
+        </div>
+      </div>
     </div>
   `;
   renderSalesTable(sales);

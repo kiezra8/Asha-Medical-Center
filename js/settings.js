@@ -22,7 +22,7 @@ function renderSettings() {
             <input class="form-control" id="sDoctorName" value="${s.doctorName||''}" placeholder="Dr. Name" /></div>
           <div class="form-group"><label class="form-label">Currency</label>
             <select class="form-control" id="sCurrency">
-              ${['KES','USD','UGX','TZS','ETB','NGN','GHS','ZAR']
+              ${['UGX','KES','USD','TZS','ETB','NGN','GHS','ZAR']
                 .map(c=>`<option ${s.currency===c?'selected':''}>${c}</option>`).join('')}
             </select></div>
         </div>

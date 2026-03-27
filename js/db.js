@@ -1,4 +1,18 @@
 // ===== LOCAL DATABASE (localStorage) =====
+// Clear any old seeded data from previous version
+(function clearOldSeedData(){
+  // Remove demo/seeded data if it exists from a previous session
+  const marker = localStorage.getItem('asha_v2_clean');
+  if (!marker) {
+    localStorage.removeItem('asha_patients');
+    localStorage.removeItem('asha_drugs');
+    localStorage.removeItem('asha_sales');
+    localStorage.removeItem('asha_appointments');
+    localStorage.removeItem('asha_staff');
+    localStorage.setItem('asha_v2_clean', '1');
+  }
+})();
+
 const DB = {
   KEYS: {
     patients: 'asha_patients',
@@ -56,6 +70,8 @@ const DB = {
     const list = this.getDrugs();
     d.id = Date.now().toString();
     d.createdAt = new Date().toISOString();
+    // Track original quantity added for stock reports
+    d.totalStocked = (d.totalStocked || 0) + (d.quantity || 0);
     list.push(d);
     this.saveDrugs(list);
     return d;
@@ -170,61 +186,22 @@ const DB = {
       address: '',
       phone: '',
       email: '',
-      currency: 'KES',
+      currency: 'UGX',
       lowStockThreshold: 10,
       doctorName: ''
     });
   },
   saveSettings(s) { this.set(this.KEYS.settings, s); },
 
-  // --- SEED DATA ---
-  seed() {
-    if (this.getDrugs().length === 0) {
-      const drugs = [
-        {name:'Amoxicillin 500mg',category:'Antibiotic',quantity:150,price:25,costPrice:15,unit:'Tablet',expiry:'2027-06-01',supplier:'PharmaCo',minStock:20},
-        {name:'Paracetamol 500mg',category:'Analgesic',quantity:500,price:10,costPrice:5,unit:'Tablet',expiry:'2027-12-01',supplier:'MedSupply',minStock:50},
-        {name:'Metformin 500mg',category:'Antidiabetic',quantity:80,price:30,costPrice:18,unit:'Tablet',expiry:'2026-09-01',supplier:'DiabCare',minStock:30},
-        {name:'Ibuprofen 400mg',category:'NSAID',quantity:8,price:20,costPrice:10,unit:'Tablet',expiry:'2027-03-01',supplier:'PharmaCo',minStock:30},
-        {name:'ORS Sachets',category:'Rehydration',quantity:200,price:15,costPrice:8,unit:'Sachet',expiry:'2028-01-01',supplier:'MedSupply',minStock:40},
-        {name:'Coartem (ALu)',category:'Antimalarial',quantity:12,price:120,costPrice:75,unit:'Pack',expiry:'2026-11-01',supplier:'MalariaCo',minStock:20},
-      ];
-      drugs.forEach(d => this.addDrug(d));
-    }
-    if (this.getPatients().length === 0) {
-      const patients = [
-        {name:'Jane Wanjiku',age:34,gender:'Female',phone:'0712345678',bloodGroup:'O+',allergies:'Penicillin',address:'Nairobi, Kenya',nextOfKin:'John Wanjiku',nextOfKinPhone:'0723456789',nationalID:'12345678',medicalHistory:'Hypertension'},
-        {name:'David Otieno',age:52,gender:'Male',phone:'0734567890',bloodGroup:'A+',allergies:'None',address:'Mombasa, Kenya',nextOfKin:'Mary Otieno',nextOfKinPhone:'0745678901',nationalID:'23456789',medicalHistory:'Type 2 Diabetes'},
-      ];
-      patients.forEach(p => {
-        const pat = this.addPatient(p);
-        pat.diagnoses = [{id:'d1',date:new Date().toISOString(),diagnosis:'Hypertension',notes:'BP 140/90',doctor:'Dr. Asha'}];
-        pat.treatments = [{id:'t1',date:new Date().toISOString(),treatment:'Amlodipine 5mg OD',status:'ongoing',notes:'Review in 1 month'}];
-        this.updatePatient(pat.id, {diagnoses:pat.diagnoses, treatments:pat.treatments});
-      });
-    }
-    if (this.getSales().length === 0) {
-      // Add some historical sales
-      const now = new Date();
-      for (let i = 29; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(d.getDate() - i);
-        const numSales = Math.floor(Math.random() * 4) + 1;
-        for (let j = 0; j < numSales; j++) {
-          const total = Math.floor(Math.random() * 500) + 100;
-          const s = {
-            id: `seed_${i}_${j}`,
-            date: d.toISOString(),
-            patientName: ['Walk-in', 'Jane W', 'David O', 'Mary K'][j % 4],
-            items: [{drugId:'seed',drugName:'Mixed',qty:1,price:total,subtotal:total}],
-            total,
-            paymentMethod: ['Cash', 'M-Pesa', 'Insurance'][j % 3],
-            servedBy: 'Admin'
-          };
-          const list = this.getSales();
-          list.push(s);
-          this.saveSales(list);
-        }
-      }
-    }
+  // Stock analytics helpers
+  getTotalStocked() {
+    // Sum of all quantities ever added (current stock + sold)
+    return this.getDrugs().reduce((sum, d) => sum + (d.totalStocked || d.quantity || 0), 0);
+  },
+  getCurrentStock() {
+    return this.getDrugs().reduce((sum, d) => sum + (d.quantity || 0), 0);
+  },
+  getTotalSoldQty() {
+    return this.getSales().reduce((sum, s) => sum + (s.items || []).reduce((a, i) => a + (i.qty || 0), 0), 0);
   }
 };
