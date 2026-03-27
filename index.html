@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Asha Medical Center - Offline Clinic Management System" />
+  <title>Asha Medical Center</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">⚕</div>
+        <div class="logo-text">
+          <span class="logo-name">Asha Medical</span>
+          <span class="logo-sub">Center</span>
+        </div>
+      </div>
+      <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="dashboard">
+        <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" data-page="patients">
+        <span class="nav-icon">👥</span><span class="nav-label">Patients</span>
+      </a>
+      <a href="#" class="nav-item" data-page="pharmacy">
+        <span class="nav-icon">💊</span><span class="nav-label">Pharmacy</span>
+      </a>
+      <a href="#" class="nav-item" data-page="sales">
+        <span class="nav-icon">🛒</span><span class="nav-label">Sales</span>
+      </a>
+      <a href="#" class="nav-item" data-page="appointments">
+        <span class="nav-icon">📅</span><span class="nav-label">Appointments</span>
+      </a>
+      <a href="#" class="nav-item" data-page="reports">
+        <span class="nav-icon">📈</span><span class="nav-label">Reports</span>
+      </a>
+      <a href="#" class="nav-item" data-page="staff">
+        <span class="nav-icon">👨‍⚕️</span><span class="nav-label">Staff</span>
+      </a>
+      <a href="#" class="nav-item" data-page="settings">
+        <span class="nav-icon">⚙️</span><span class="nav-label">Settings</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="clinic-info">
+        <span class="clinic-status">🟢 Offline Ready</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content" id="mainContent">
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" id="menuBtn">☰</button>
+        <div class="page-title" id="pageTitle">Dashboard</div>
+      </div>
+      <div class="topbar-right">
+        <div class="date-display" id="dateDisplay"></div>
+        <button class="btn btn-primary" id="quickSaleBtn">+ Quick Sale</button>
+      </div>
+    </header>
+
+    <!-- Pages -->
+    <div class="page-container">
+      <div id="page-dashboard" class="page active"></div>
+      <div id="page-patients" class="page"></div>
+      <div id="page-pharmacy" class="page"></div>
+      <div id="page-sales" class="page"></div>
+      <div id="page-appointments" class="page"></div>
+      <div id="page-reports" class="page"></div>
+      <div id="page-staff" class="page"></div>
+      <div id="page-settings" class="page"></div>
+    </div>
+  </main>
+
+  <!-- Global Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Modal</h3>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="js/db.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/patients.js"></script>
+  <script src="js/pharmacy.js"></script>
+  <script src="js/sales.js"></script>
+  <script src="js/appointments.js"></script>
+  <script src="js/reports.js"></script>
+  <script src="js/staff.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

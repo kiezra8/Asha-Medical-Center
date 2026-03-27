@@ -1,0 +1,244 @@
+// ===== SALES & BILLING MODULE =====
+let saleItems = [];
+
+function renderSales() {
+  const sales = DB.getSales().slice().reverse();
+  const todayRev = DB.totalRevenue(DB.getToday());
+  const weekRev = DB.totalRevenue(DB.getThisWeek());
+  const monthRev = DB.totalRevenue(DB.getThisMonth());
+  const el = document.getElementById('page-sales');
+  el.innerHTML = `
+    <div class="section-header">
+      <div class="section-title">🛒 Sales & Billing</div>
+      <button class="btn btn-primary" onclick="openNewSaleModal()">+ New Sale</button>
+    </div>
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+      <div class="stat-card" style="--gradient:linear-gradient(90deg,#00b4d8,#06d6a0)">
+        <div class="stat-icon">📆</div>
+        <div class="stat-value">${UI.fmt.currency(todayRev)}</div>
+        <div class="stat-label">Today</div>
+      </div>
+      <div class="stat-card" style="--gradient:linear-gradient(90deg,#f4a261,#e63946)">
+        <div class="stat-icon">📅</div>
+        <div class="stat-value">${UI.fmt.currency(weekRev)}</div>
+        <div class="stat-label">This Week</div>
+      </div>
+      <div class="stat-card" style="--gradient:linear-gradient(90deg,#a855f7,#3b82f6)">
+        <div class="stat-icon">📊</div>
+        <div class="stat-value">${UI.fmt.currency(monthRev)}</div>
+        <div class="stat-label">This Month</div>
+      </div>
+    </div>
+    <div class="search-bar">
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="saleSearch" placeholder="Search by patient, payment method..." oninput="filterSales()" />
+      </div>
+      <input type="date" class="form-control" id="saleDateFilter" onchange="filterSales()" style="width:160px" />
+      <button class="btn btn-outline" onclick="document.getElementById('saleDateFilter').value='';filterSales()">Clear</button>
+      <button class="btn btn-outline" onclick="exportSales()">📥 Export</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date & Time</th><th>Patient</th><th>Items</th><th>Total</th><th>Payment</th><th>Served By</th><th>Receipt</th></tr></thead>
+        <tbody id="salesTableBody"></tbody>
+      </table>
+    </div>
+  `;
+  renderSalesTable(sales);
+}
+
+function renderSalesTable(sales) {
+  const tbody = document.getElementById('salesTableBody');
+  if (!tbody) return;
+  if (sales.length === 0) { tbody.innerHTML = `<tr><td colspan="7">${UI.emptyState('No sales recorded','🛒')}</td></tr>`; return; }
+  tbody.innerHTML = sales.map(s => `
+    <tr>
+      <td>${UI.fmt.datetime(s.date)}</td>
+      <td>${s.patientName || 'Walk-in'}</td>
+      <td><span class="badge badge-info">${s.items?.length || 0} items</span></td>
+      <td style="font-weight:700;color:var(--accent)">${UI.fmt.currency(s.total)}</td>
+      <td>${UI.badge(s.paymentMethod || 'Cash', s.paymentMethod === 'M-Pesa' ? 'success' : s.paymentMethod === 'Insurance' ? 'info' : 'secondary')}</td>
+      <td style="font-size:12px">${s.servedBy || '—'}</td>
+      <td><button class="btn btn-xs btn-outline" onclick="showReceipt('${s.id}')">🖨 Receipt</button></td>
+    </tr>
+  `).join('');
+}
+
+function filterSales() {
+  const q = document.getElementById('saleSearch')?.value.toLowerCase() || '';
+  const dateFilter = document.getElementById('saleDateFilter')?.value || '';
+  const all = DB.getSales().slice().reverse().filter(s => {
+    const matchQ = !q || s.patientName?.toLowerCase().includes(q) || s.paymentMethod?.toLowerCase().includes(q);
+    const matchDate = !dateFilter || s.date?.startsWith(dateFilter);
+    return matchQ && matchDate;
+  });
+  renderSalesTable(all);
+}
+
+function openNewSaleModal() {
+  saleItems = [];
+  const drugs = DB.getDrugs();
+  const patients = DB.getPatients();
+  const settings = DB.getSettings();
+  UI.modal.open('New Sale / Bill', `
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Patient Name</label>
+        <input class="form-control" id="salePatient" list="salePatientList" placeholder="Patient name or Walk-in" value="Walk-in" />
+        <datalist id="salePatientList">${patients.map(p=>`<option value="${p.name}">`).join('')}</datalist></div>
+      <div class="form-group"><label class="form-label">Payment Method</label>
+        <select class="form-control" id="salePayment">
+          <option>Cash</option><option>M-Pesa</option><option>Insurance</option><option>Card</option>
+        </select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Served By</label>
+      <input class="form-control" id="saleServedBy" value="${settings.doctorName||''}" placeholder="Staff name" /></div>
+    <div class="divider"></div>
+    <div class="form-row-3" style="margin-bottom:12px">
+      <div class="form-group"><label class="form-label">Drug</label>
+        <select class="form-control" id="saleDrugSel">
+          <option value="">Select drug...</option>
+          ${drugs.filter(d=>d.quantity>0).map(d=>`<option value="${d.id}" data-price="${d.price}" data-name="${d.name}" data-stock="${d.quantity}">${d.name} (${d.quantity})</option>`).join('')}
+        </select></div>
+      <div class="form-group"><label class="form-label">Qty</label>
+        <input class="form-control" id="saleDrugQty" type="number" value="1" min="1" /></div>
+      <div class="form-group"><label class="form-label">Price</label>
+        <input class="form-control" id="saleDrugPrice" type="number" step="0.01" placeholder="Auto" /></div>
+    </div>
+    <button class="btn btn-accent" style="margin-bottom:16px" onclick="addSaleItem()">+ Add Item</button>
+    <div id="saleItemsTable">
+      <div id="saleItemsList"></div>
+      <div class="divider"></div>
+      <div style="display:flex;justify-content:flex-end;align-items:center;gap:16px">
+        <span style="font-size:13px;color:var(--text-secondary)">TOTAL</span>
+        <span style="font-size:24px;font-weight:800;color:var(--accent)" id="saleTotalDisplay">KES 0.00</span>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;justify-content:flex-end;gap:12px">
+      <button class="btn btn-outline" onclick="UI.modal.close()">Cancel</button>
+      <button class="btn btn-primary" onclick="completeSale()">Complete Sale 💳</button>
+    </div>
+  `);
+  // Auto-fill price when drug selected
+  document.getElementById('saleDrugSel').addEventListener('change', function() {
+    const opt = this.selectedOptions[0];
+    if (opt?.dataset.price) document.getElementById('saleDrugPrice').value = opt.dataset.price;
+  });
+  renderSaleItems();
+}
+
+function addSaleItem() {
+  const sel = document.getElementById('saleDrugSel');
+  const opt = sel.selectedOptions[0];
+  if (!opt || !opt.value) { UI.toast('Select a drug first', 'error'); return; }
+  const qty = parseInt(document.getElementById('saleDrugQty').value) || 1;
+  const price = parseFloat(document.getElementById('saleDrugPrice').value) || parseFloat(opt.dataset.price) || 0;
+  const maxStock = parseInt(opt.dataset.stock) || 999;
+  if (qty > maxStock) { UI.toast(`Only ${maxStock} in stock!`, 'error'); return; }
+  const existing = saleItems.find(i => i.drugId === opt.value);
+  if (existing) {
+    existing.qty += qty;
+    existing.subtotal = existing.qty * existing.price;
+  } else {
+    saleItems.push({ drugId: opt.value, drugName: opt.dataset.name, qty, price, subtotal: qty * price });
+  }
+  renderSaleItems();
+}
+
+function renderSaleItems() {
+  const el = document.getElementById('saleItemsList');
+  if (!el) return;
+  const total = saleItems.reduce((s, i) => s + i.subtotal, 0);
+  el.innerHTML = saleItems.length === 0 ? `<div style="text-align:center;color:var(--text-muted);padding:20px">No items added</div>` :
+    `<div class="table-wrap"><table><thead><tr><th>Drug</th><th>Qty</th><th>Price</th><th>Subtotal</th><th></th></tr></thead><tbody>
+      ${saleItems.map((i,idx) => `<tr>
+        <td>${i.drugName}</td>
+        <td><input type="number" value="${i.qty}" min="1" style="width:60px;background:var(--bg-dark);border:1px solid var(--border);border-radius:4px;padding:4px 6px;color:var(--text-primary)" onchange="updateSaleQty(${idx},this.value)" /></td>
+        <td>${UI.fmt.currency(i.price)}</td>
+        <td style="font-weight:600">${UI.fmt.currency(i.subtotal)}</td>
+        <td><button class="btn btn-xs btn-danger" onclick="removeSaleItem(${idx})">✕</button></td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+  const totalEl = document.getElementById('saleTotalDisplay');
+  if (totalEl) totalEl.textContent = UI.fmt.currency(total);
+}
+
+function updateSaleQty(idx, val) {
+  saleItems[idx].qty = parseInt(val) || 1;
+  saleItems[idx].subtotal = saleItems[idx].qty * saleItems[idx].price;
+  renderSaleItems();
+}
+
+function removeSaleItem(idx) {
+  saleItems.splice(idx, 1);
+  renderSaleItems();
+}
+
+function completeSale() {
+  if (saleItems.length === 0) { UI.toast('Add at least one item', 'error'); return; }
+  const total = saleItems.reduce((s, i) => s + i.subtotal, 0);
+  const sale = DB.addSale({
+    patientName: document.getElementById('salePatient').value || 'Walk-in',
+    paymentMethod: document.getElementById('salePayment').value,
+    servedBy: document.getElementById('saleServedBy').value,
+    items: [...saleItems], total
+  });
+  UI.modal.close();
+  UI.toast('Sale completed! ' + UI.fmt.currency(total), 'success');
+  saleItems = [];
+  renderSales();
+  showReceipt(sale.id);
+}
+
+function showReceipt(saleId) {
+  const s = DB.getSales().find(x => x.id === saleId);
+  if (!s) return;
+  const settings = DB.getSettings();
+  UI.modal.open('Receipt', `
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:20px;font-weight:800;color:var(--primary)">${settings.clinicName}</div>
+      <div style="font-size:12px;color:var(--text-secondary)">${settings.address || ''} ${settings.phone ? '· Tel: '+settings.phone : ''}</div>
+      <div class="divider"></div>
+      <div style="font-size:12px;color:var(--text-secondary)">Receipt • ${UI.fmt.datetime(s.date)}</div>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>
+      ${(s.items || []).map(i => `<tr><td>${i.drugName||i.drug||'Item'}</td><td>${i.qty}</td><td>${UI.fmt.currency(i.price)}</td><td>${UI.fmt.currency(i.subtotal)}</td></tr>`).join('')}
+      </tbody></table>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:800">
+      <span>TOTAL</span><span style="color:var(--accent)">${UI.fmt.currency(s.total)}</span>
+    </div>
+    <div style="font-size:13px;color:var(--text-secondary);margin-top:8px">
+      Patient: ${s.patientName || 'Walk-in'} · Payment: ${s.paymentMethod || 'Cash'} · Served by: ${s.servedBy || '—'}
+    </div>
+    <div class="divider"></div>
+    <div style="text-align:center;font-size:12px;color:var(--text-muted)">Thank you for visiting ${settings.clinicName}!</div>
+    <div style="display:flex;justify-content:center;margin-top:16px">
+      <button class="btn btn-primary" onclick="printReceipt()">🖨 Print</button>
+    </div>
+  `);
+  window._printReceipt = () => window.print();
+}
+
+function printReceipt() { window.print(); }
+
+function exportSales() {
+  const sales = DB.getSales();
+  let csv = 'Date,Patient,Items,Total,Payment Method,Served By\n';
+  sales.forEach(s => {
+    const items = (s.items || []).map(i => `${i.drugName||''}x${i.qty}`).join('; ');
+    csv += `"${UI.fmt.datetime(s.date)}","${s.patientName||'Walk-in'}","${items}",${s.total},"${s.paymentMethod||'Cash'}","${s.servedBy||''}"\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `asha_sales_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  UI.toast('Sales exported!', 'success');
+}
+
+// Quick sale shortcut from topbar
+function openQuickSale() { openNewSaleModal(); }
