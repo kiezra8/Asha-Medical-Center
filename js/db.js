@@ -101,12 +101,21 @@ const DB = {
     if (s.items) {
       s.items.forEach(item => {
         const drug = this.getDrug(item.drugId);
-        if (drug) {
+        if (drug && !item.drugId.startsWith('manual_')) {
           this.updateDrug(item.drugId, { quantity: Math.max(0, (drug.quantity || 0) - item.qty) });
         }
       });
     }
     return s;
+  },
+  updateSale(id, updates) {
+    const list = this.getSales();
+    const idx = list.findIndex(s => s.id === id);
+    if (idx !== -1) {
+      list[idx] = { ...list[idx], ...updates };
+      this.saveSales(list);
+    }
+    return list[idx];
   },
 
   // Sales analytics

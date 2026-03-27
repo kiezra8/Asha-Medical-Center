@@ -14,11 +14,16 @@ function renderPatients() {
         <span class="search-icon">🔍</span>
         <input type="text" id="patientSearch" placeholder="Search by name, phone, ID..." oninput="filterPatients()" />
       </div>
-      <select class="form-control" id="genderFilter" onchange="filterPatients()" style="width:140px">
-        <option value="">All Genders</option>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label for="pDateFilter" style="font-size:12px;color:var(--text-secondary);white-space:nowrap">History Date:</label>
+        <input type="date" class="form-control" id="pDateFilter" onchange="filterPatients()" style="width:140px" />
+      </div>
+      <select class="form-control" id="genderFilter" onchange="filterPatients()" style="width:110px">
+        <option value="">Gender</option>
         <option value="Male">Male</option>
         <option value="Female">Female</option>
       </select>
+      <button class="btn btn-outline" onclick="document.getElementById('pDateFilter').value='';document.getElementById('genderFilter').value='';filterPatients()">Clear</button>
     </div>
     <div class="grid-auto" id="patientGrid">
       ${patients.length === 0 ? UI.emptyState('No patients registered yet','👤') : ''}
@@ -58,11 +63,14 @@ function renderPatientCards(patients) {
 function filterPatients() {
   const q = document.getElementById('patientSearch')?.value.toLowerCase() || '';
   const g = document.getElementById('genderFilter')?.value || '';
+  const dateFilter = document.getElementById('pDateFilter')?.value || '';
   const all = DB.getPatients();
-  const filtered = all.filter(p =>
-    (!q || p.name?.toLowerCase().includes(q) || p.phone?.includes(q) || p.nationalID?.includes(q)) &&
-    (!g || p.gender === g)
-  );
+  const filtered = all.filter(p => {
+    const matchQ = !q || p.name?.toLowerCase().includes(q) || p.phone?.includes(q) || p.nationalID?.includes(q);
+    const matchG = !g || p.gender === g;
+    const matchDate = !dateFilter || p.createdAt?.startsWith(dateFilter);
+    return matchQ && matchG && matchDate;
+  });
   renderPatientCards(filtered);
 }
 
@@ -107,6 +115,18 @@ function openAddPatientModal(editId) {
       <input class="form-control" id="pAllergies" value="${p?.allergies||''}" placeholder="Known allergies" /></div>
     <div class="form-group"><label class="form-label">Medical History</label>
       <textarea class="form-control" id="pHistory" placeholder="Previous conditions, surgeries...">${p?.medicalHistory||''}</textarea></div>
+    
+    ${!isEdit ? `
+    <div class="divider"></div>
+    <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:12px;text-transform:uppercase">Initial Billing</div>
+    <div class="form-row" style="margin-bottom:12px">
+      <div class="form-group"><label class="form-label">Total Bill Amount (UGX)</label>
+        <input class="form-control" id="pBillTotal" type="number" step="1" min="0" placeholder="0" value="0" /></div>
+      <div class="form-group"><label class="form-label">Amount Paid Now (UGX)</label>
+        <input class="form-control" id="pBillPaid" type="number" step="1" min="0" placeholder="0" value="0" /></div>
+    </div>
+    ` : ''}
+    
     <div class="divider"></div>
     <div style="display:flex;justify-content:flex-end;gap:12px">
       <button class="btn btn-outline" onclick="UI.modal.close()">Cancel</button>
@@ -120,7 +140,7 @@ function openAddPatientModal(editId) {
 function saveNewPatient() {
   const name = document.getElementById('pName').value.trim();
   if (!name) { UI.toast('Patient name is required', 'error'); return; }
-  DB.addPatient({
+  const p = DB.addPatient({
     name, age: document.getElementById('pAge').value,
     gender: document.getElementById('pGender').value,
     bloodGroup: document.getElementById('pBlood').value,
@@ -132,6 +152,21 @@ function saveNewPatient() {
     allergies: document.getElementById('pAllergies').value,
     medicalHistory: document.getElementById('pHistory').value
   });
+  
+  // Create initial bill if provided
+  const billTotal = parseFloat(document.getElementById('pBillTotal').value) || 0;
+  if (billTotal > 0) {
+    p.bills = [{
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+      description: 'Initial Registration / Consultation',
+      totalAmount: billTotal,
+      amountPaid: Math.min(parseFloat(document.getElementById('pBillPaid').value) || 0, billTotal),
+      notes: ''
+    }];
+    DB.updatePatient(p.id, { bills: p.bills });
+  }
+
   UI.modal.close();
   UI.toast('Patient registered successfully!', 'success');
   renderPatients();

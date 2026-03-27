@@ -21,14 +21,22 @@ function renderSales() {
         <span class="search-icon">🔍</span>
         <input type="text" id="saleSearch" placeholder="Search by patient, payment method..." oninput="filterSales()" />
       </div>
-      <input type="date" class="form-control" id="saleDateFilter" onchange="filterSales()" style="width:160px" />
+      <div style="display:flex;align-items:center;gap:8px">
+        <label for="saleDateFilter" style="font-size:12px;color:var(--text-secondary);white-space:nowrap">History Date:</label>
+        <input type="date" class="form-control" id="saleDateFilter" onchange="filterSales()" style="width:140px" />
+      </div>
       <button class="btn btn-outline" onclick="document.getElementById('saleDateFilter').value='';filterSales()">Clear</button>
-      <button class="btn btn-outline" onclick="exportSales()">📥 Export</button>
+      <button class="btn btn-outline" onclick="exportSales()">CSV</button>
+      <button class="btn btn-primary" onclick="printSalesPDF()">🖨 Print / PDF</button>
     </div>
 
-    <div class="table-wrap" style="margin-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0">
+    <div class="table-wrap" id="salesPrintArea" style="margin-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0">
+      <div id="salesPrintHeader" style="display:none;text-align:center;margin-bottom:20px;">
+        <h2 style="margin:0;color:#000">Sales History</h2>
+        <p id="salesPrintDate" style="color:#444;margin:4px 0"></p>
+      </div>
       <table>
-        <thead><tr><th>Date & Time</th><th>Patient</th><th>Items</th><th>Total</th><th>Payment</th><th>Served By</th><th>Receipt</th></tr></thead>
+        <thead><tr><th>Date & Time</th><th>Patient</th><th>Items</th><th>Total</th><th>Payment</th><th>Served By</th><th class="no-print">Actions</th></tr></thead>
         <tbody id="salesTableBody"></tbody>
       </table>
     </div>
@@ -70,7 +78,12 @@ function renderSalesTable(sales) {
       <td style="font-weight:700;color:var(--accent)">${UI.fmt.currency(s.total)}</td>
       <td>${UI.badge(s.paymentMethod || 'Cash', s.paymentMethod === 'M-Pesa' ? 'success' : s.paymentMethod === 'Insurance' ? 'info' : 'secondary')}</td>
       <td style="font-size:12px">${s.servedBy || '—'}</td>
-      <td><button class="btn btn-xs btn-outline" onclick="showReceipt('${s.id}')">🖨 Receipt</button></td>
+      <td class="no-print">
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-xs btn-outline" onclick="showReceipt('${s.id}')">🖨</button>
+          <button class="btn btn-xs btn-primary" onclick="openNewSaleModal('${s.id}')">Edit</button>
+        </div>
+      </td>
     </tr>
   `).join('');
 }
@@ -86,32 +99,49 @@ function filterSales() {
   renderSalesTable(all);
 }
 
-function openNewSaleModal() {
-  saleItems = [];
+function openNewSaleModal(editId = null) {
+  const existingSale = editId ? DB.getSales().find(s => s.id === editId) : null;
+  saleItems = existingSale ? JSON.parse(JSON.stringify(existingSale.items || [])) : [];
+  
   const drugs = DB.getDrugs();
   const patients = DB.getPatients();
   const settings = DB.getSettings();
-  UI.modal.open('New Sale / Bill', `
+  
+  UI.modal.open(existingSale ? 'Edit Sale' : 'New Sale / Bill', `
     <div class="form-row">
       <div class="form-group"><label class="form-label">Patient Name</label>
-        <input class="form-control" id="salePatient" list="salePatientList" placeholder="Patient name or Walk-in" value="Walk-in" />
+        <input class="form-control" id="salePatient" list="salePatientList" placeholder="Patient name or Walk-in" value="${existingSale?.patientName || 'Walk-in'}" />
         <datalist id="salePatientList">${patients.map(p=>`<option value="${p.name}">`).join('')}</datalist></div>
       <div class="form-group"><label class="form-label">Payment Method</label>
         <select class="form-control" id="salePayment">
-          <option>Cash</option><option>M-Pesa</option><option>Insurance</option><option>Card</option>
+          <option ${existingSale?.paymentMethod==='Cash'?'selected':''}>Cash</option>
+          <option ${existingSale?.paymentMethod==='M-Pesa'?'selected':''}>M-Pesa</option>
+          <option ${existingSale?.paymentMethod==='Insurance'?'selected':''}>Insurance</option>
+          <option ${existingSale?.paymentMethod==='Card'?'selected':''}>Card</option>
         </select></div>
     </div>
     <div class="form-group"><label class="form-label">Served By</label>
-      <input class="form-control" id="saleServedBy" value="${settings.doctorName||''}" placeholder="Staff name" /></div>
+      <input class="form-control" id="saleServedBy" value="${existingSale?.servedBy || settings.doctorName || ''}" placeholder="Staff name" /></div>
     <div class="divider"></div>
-    <div class="form-row-3" style="margin-bottom:12px">
-      <div class="form-group"><label class="form-label">Drug / Item Name</label>
+    <div class="form-row" style="margin-bottom:12px">
+      <div class="form-group" style="flex:2"><label class="form-label">Drug / Item Name</label>
         <input class="form-control" id="saleDrugName" list="saleDrugList" placeholder="Type drug name..." autocomplete="off" />
         <datalist id="saleDrugList">
           ${drugs.map(d=>`<option value="${d.name}" data-price="${d.price}" data-id="${d.id}" data-stock="${d.quantity}">${d.name} — Stock: ${d.quantity}</option>`).join('')}
         </datalist></div>
-      <div class="form-group"><label class="form-label">Qty</label>
-        <input class="form-control" id="saleDrugQty" type="number" value="1" min="1" /></div>
+      <div class="form-group"><label class="form-label">Qty & Unit</label>
+        <div style="display:flex;gap:4px">
+          <input class="form-control" id="saleDrugQty" type="number" value="1" min="1" style="width:60px" />
+          <select class="form-control" id="saleDrugUnit" style="flex:1">
+            <option value="">(None)</option>
+            <option value="Tablets">Tablets</option>
+            <option value="Syrup">Syrup</option>
+            <option value="Strip">Strip</option>
+            <option value="Packets">Packets</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
       <div class="form-group"><label class="form-label">Price (UGX)</label>
         <input class="form-control" id="saleDrugPrice" type="number" step="1" placeholder="Enter price" /></div>
     </div>
@@ -127,7 +157,7 @@ function openNewSaleModal() {
     <div class="divider"></div>
     <div style="display:flex;justify-content:flex-end;gap:12px">
       <button class="btn btn-outline" onclick="UI.modal.close()">Cancel</button>
-      <button class="btn btn-primary" onclick="completeSale()">Complete Sale 💳</button>
+      <button class="btn btn-primary" onclick="completeSale('${editId || ''}')">${existingSale ? 'Save Changes' : 'Complete Sale 💳'}</button>
     </div>
   `);
   // Auto-fill price when a known drug is typed
@@ -146,6 +176,9 @@ function addSaleItem() {
   const qty = parseInt(document.getElementById('saleDrugQty').value) || 1;
   const price = parseFloat(document.getElementById('saleDrugPrice').value) || 0;
   if (price <= 0) { UI.toast('Enter a price greater than 0', 'error'); return; }
+  const unit = document.getElementById('saleDrugUnit').value;
+  const unitLabel = unit ? ` ${unit}` : '';
+  
   // Check if drug is in inventory and validate stock
   const drugs = DB.getDrugs();
   const match = drugs.find(d => d.name.toLowerCase() === drugName.toLowerCase());
@@ -153,16 +186,17 @@ function addSaleItem() {
     UI.toast(`Only ${match.quantity} units of '${match.name}' in stock!`, 'error'); return;
   }
   const drugId = match ? match.id : 'manual_' + Date.now();
-  const existing = saleItems.find(i => i.drugId === drugId && i.drugId !== 'manual_' + Date.now());
+  const existing = saleItems.find(i => i.drugId === drugId && i.drugId !== 'manual_' + Date.now() && i.unitLabel === unitLabel);
   if (existing && match) {
     existing.qty += qty;
     existing.subtotal = existing.qty * existing.price;
   } else {
-    saleItems.push({ drugId, drugName, qty, price, subtotal: qty * price });
+    saleItems.push({ drugId, drugName: drugName + unitLabel, qty, price, subtotal: qty * price, unitLabel });
   }
   // Clear inputs for next item
   nameInput.value = '';
   document.getElementById('saleDrugQty').value = '1';
+  document.getElementById('saleDrugUnit').value = '';
   document.getElementById('saleDrugPrice').value = '';
   nameInput.focus();
   renderSaleItems();
@@ -197,20 +231,33 @@ function removeSaleItem(idx) {
   renderSaleItems();
 }
 
-function completeSale() {
+function completeSale(editId = null) {
   if (saleItems.length === 0) { UI.toast('Add at least one item', 'error'); return; }
   const total = saleItems.reduce((s, i) => s + i.subtotal, 0);
-  const sale = DB.addSale({
-    patientName: document.getElementById('salePatient').value || 'Walk-in',
-    paymentMethod: document.getElementById('salePayment').value,
-    servedBy: document.getElementById('saleServedBy').value,
-    items: [...saleItems], total
-  });
+  
+  if (editId) {
+    DB.updateSale(editId, {
+      patientName: document.getElementById('salePatient').value || 'Walk-in',
+      paymentMethod: document.getElementById('salePayment').value,
+      servedBy: document.getElementById('saleServedBy').value,
+      items: [...saleItems], total
+    });
+    UI.toast('Sale updated!', 'success');
+  } else {
+    const sale = DB.addSale({
+      patientName: document.getElementById('salePatient').value || 'Walk-in',
+      paymentMethod: document.getElementById('salePayment').value,
+      servedBy: document.getElementById('saleServedBy').value,
+      items: [...saleItems], total
+    });
+    editId = sale.id;
+    UI.toast('Sale completed! ' + UI.fmt.currency(total), 'success');
+  }
+  
   UI.modal.close();
-  UI.toast('Sale completed! ' + UI.fmt.currency(total), 'success');
   saleItems = [];
   renderSales();
-  showReceipt(sale.id);
+  if (!editId) showReceipt(editId); // Only show receipt on new sale
 }
 
 function showReceipt(saleId) {
@@ -259,8 +306,26 @@ function exportSales() {
   a.href = URL.createObjectURL(blob);
   a.download = `asha_sales_${new Date().toISOString().split('T')[0]}.csv`;
   a.click();
-  UI.toast('Sales exported!', 'success');
+  UI.toast('Sales exported to CSV!', 'success');
 }
 
-// Quick sale shortcut from topbar
-function openQuickSale() { openNewSaleModal(); }
+function printSalesPDF() {
+  const dateFilter = document.getElementById('saleDateFilter')?.value;
+  const dateStr = dateFilter ? new Date(dateFilter).toLocaleDateString() : 'All Time';
+  
+  // Setup print header
+  const header = document.getElementById('salesPrintHeader');
+  if (header) {
+    header.style.display = 'block';
+    document.getElementById('salesPrintDate').textContent = 'Date: ' + dateStr;
+  }
+  
+  // Add print class to body to hide sidebar and other pages
+  document.body.classList.add('printing-sales');
+  
+  window.print();
+  
+  // Cleanup
+  document.body.classList.remove('printing-sales');
+  if (header) header.style.display = 'none';
+}

@@ -36,8 +36,30 @@ const APP = {
       if (e.target === document.getElementById('modalOverlay')) UI.modal.close();
     });
 
-    // Quick sale button
-    document.getElementById('quickSaleBtn').addEventListener('click', () => openQuickSale());
+    // Register Service Worker for PWA (offline & install)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.log('SW registration failed:', err));
+    }
+
+    // PWA Install Prompt handling
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const installBtn = document.getElementById('installBtn');
+      if (installBtn) {
+        installBtn.style.display = 'block';
+        installBtn.addEventListener('click', () => {
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') installBtn.style.display = 'none';
+            deferredPrompt = null;
+          });
+        });
+      }
+    });
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {

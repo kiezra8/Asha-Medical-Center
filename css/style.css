@@ -28,11 +28,30 @@ body{display:flex;}
 .sidebar.collapsed{width:68px;}
 .sidebar-header{padding:20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .logo{display:flex;align-items:center;gap:10px;overflow:hidden;}
-.logo-icon{font-size:28px;flex-shrink:0;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.logo-icon{font-size:28px;flex-shrink:0;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
 .logo-text{display:flex;flex-direction:column;white-space:nowrap;}
 .logo-name{font-size:14px;font-weight:700;color:var(--primary);}
 .logo-sub{font-size:11px;color:var(--text-secondary);}
 .sidebar.collapsed .logo-text,.sidebar.collapsed .nav-label,.sidebar.collapsed .sidebar-footer,.sidebar.collapsed .logo-sub{display:none;}
+/* Print Styles for PDF Export */
+@media print {
+  body { background: white !important; color: black !important; margin: 0; padding: 0; }
+  .sidebar, .topbar, .section-header, .search-bar, .no-print, .btn, .modal-close { display: none !important; }
+  .main-content { margin-left: 0 !important; padding: 0 !important; }
+  .page { display: none; }
+  .page.active { display: block; }
+  
+  /* Specific override for sales printing */
+  body.printing-sales .page { display: none !important; }
+  body.printing-sales #page-sales { display: block !important; }
+  body.printing-sales #page-sales > * { display: none !important; }
+  body.printing-sales #salesPrintArea { display: block !important; box-shadow: none !important; margin: 0 !important; padding: 0 !important; }
+  
+  .table-wrap { box-shadow: none !important; margin: 0 !important; }
+  table th { background: #f0f0f0 !important; color: #000 !important; border-bottom: 2px solid #ddd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  table td { color: #000 !important; border-bottom: 1px solid #ddd !important; }
+  .badge { background: none !important; color: #000 !important; border: 1px solid #000 !important; }
+}
 .sidebar-toggle{background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:18px;padding:4px;}
 .sidebar-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:4px;overflow-y:auto;}
 .nav-item{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:var(--radius-sm);color:var(--text-secondary);text-decoration:none;transition:var(--transition);font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;}
