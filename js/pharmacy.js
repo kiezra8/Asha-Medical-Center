@@ -19,10 +19,14 @@ function renderPharmacy() {
         <span class="search-icon">🔍</span>
         <input type="text" id="drugSearch" placeholder="Search drugs..." oninput="filterDrugs()" />
       </div>
-      <select class="form-control" id="catFilter" onchange="filterDrugs()" style="width:170px">
-        <option value="">All Categories</option>
-        ${[...new Set(drugs.map(d=>d.category))].map(c=>`<option>${c}</option>`).join('')}
-      </select>
+      <div style="position:relative">
+        <input type="text" class="form-control" id="catFilter" list="catFilterList"
+          placeholder="Filter by category..." oninput="filterDrugs()" style="width:180px" />
+        <datalist id="catFilterList">
+          <option value="">All</option>
+          ${[...new Set(drugs.map(d=>d.category).filter(Boolean))].map(c=>`<option value="${c}">${c}</option>`).join('')}
+        </datalist>
+      </div>
       <select class="form-control" id="stockFilter" onchange="filterDrugs()" style="width:150px">
         <option value="">All Stock</option>
         <option value="low">Low Stock</option>
@@ -77,11 +81,11 @@ function renderDrugTable(drugs) {
 
 function filterDrugs() {
   const q = document.getElementById('drugSearch')?.value.toLowerCase() || '';
-  const cat = document.getElementById('catFilter')?.value || '';
+  const cat = document.getElementById('catFilter')?.value.toLowerCase() || '';
   const stock = document.getElementById('stockFilter')?.value || '';
   const all = DB.getDrugs().filter(d => {
     const matchQ = !q || d.name?.toLowerCase().includes(q) || d.category?.toLowerCase().includes(q);
-    const matchCat = !cat || d.category === cat;
+    const matchCat = !cat || d.category?.toLowerCase().includes(cat);
     const matchStock = !stock ||
       (stock === 'low' && d.quantity > 0 && d.quantity <= (d.minStock || 10)) ||
       (stock === 'out' && d.quantity <= 0) ||

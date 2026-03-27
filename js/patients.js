@@ -169,21 +169,29 @@ function openPatientDetail(id) {
   const p = DB.getPatient(id);
   if (!p) return;
   currentPatientId = id;
+  // Compute billing summary for badge
+  const bills = p.bills || [];
+  const totalOwed = bills.reduce((s,b) => s + Math.max(0,(b.totalAmount||0)-(b.amountPaid||0)), 0);
   const body = `
     <div style="display:flex;gap:20px;align-items:center;margin-bottom:20px">
       <div class="patient-avatar" style="width:64px;height:64px;font-size:24px">${UI.fmt.initials(p.name)}</div>
-      <div>
+      <div style="flex:1">
         <div style="font-size:20px;font-weight:700">${p.name}</div>
         <div style="color:var(--text-secondary)">${p.age ? p.age + ' yrs' : ''}${p.gender ? ' · ' + p.gender : ''} · ${p.bloodGroup || 'Unknown'}</div>
         <div style="font-size:12px;color:var(--text-muted)">Registered: ${UI.fmt.date(p.createdAt)}</div>
       </div>
+      ${totalOwed > 0 ? `<div style="background:rgba(230,57,70,0.15);border:1px solid rgba(230,57,70,0.4);border-radius:var(--radius-sm);padding:8px 14px;text-align:center">
+        <div style="font-size:11px;color:var(--danger)">BALANCE DUE</div>
+        <div style="font-size:18px;font-weight:800;color:var(--danger)">${UI.fmt.currency(totalOwed)}</div>
+      </div>` : ''}
     </div>
     <div class="tabs" id="patientTabs">
       <button class="tab-btn active" onclick="switchPatientTab('info')">Info</button>
+      <button class="tab-btn" onclick="switchPatientTab('billing')">💰 Billing${totalOwed > 0 ? ' 🔴' : ''}</button>
       <button class="tab-btn" onclick="switchPatientTab('diagnoses')">Diagnoses</button>
       <button class="tab-btn" onclick="switchPatientTab('treatments')">Treatments</button>
       <button class="tab-btn" onclick="switchPatientTab('prescriptions')">Prescriptions</button>
-      <button class="tab-btn" onclick="switchPatientTab('visits')">Visit History</button>
+      <button class="tab-btn" onclick="switchPatientTab('visits')">Visits</button>
     </div>
     <div id="patientTabContent"></div>
   `;
@@ -192,8 +200,9 @@ function openPatientDetail(id) {
 }
 
 function switchPatientTab(tab) {
+  const tabs = ['info','billing','diagnoses','treatments','prescriptions','visits'];
   document.querySelectorAll('#patientTabs .tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['info','diagnoses','treatments','prescriptions','visits'][i] === tab);
+    b.classList.toggle('active', tabs[i] === tab);
   });
   const p = DB.getPatient(currentPatientId);
   const el = document.getElementById('patientTabContent');
@@ -212,6 +221,56 @@ function switchPatientTab(tab) {
           ${infoRow('Medical History', p.medicalHistory)}
         </div>
       </div>`;
+
+  } else if (tab === 'billing') {
+    const bills = p.bills || [];
+    const totalBilled = bills.reduce((s,b) => s + (b.totalAmount||0), 0);
+    const totalPaid   = bills.reduce((s,b) => s + (b.amountPaid||0), 0);
+    const totalOwed   = totalBilled - totalPaid;
+    el.innerHTML = `
+      <!-- Summary row -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+        <div style="background:var(--bg-card2);border-radius:var(--radius-sm);padding:14px;border:1px solid var(--border);text-align:center">
+          <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">TOTAL BILLED</div>
+          <div style="font-size:20px;font-weight:800;color:var(--primary)">${UI.fmt.currency(totalBilled)}</div>
+        </div>
+        <div style="background:var(--bg-card2);border-radius:var(--radius-sm);padding:14px;border:1px solid var(--border);text-align:center">
+          <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">AMOUNT PAID</div>
+          <div style="font-size:20px;font-weight:800;color:var(--accent)">${UI.fmt.currency(totalPaid)}</div>
+        </div>
+        <div style="background:${totalOwed>0?'rgba(230,57,70,0.12)':'var(--bg-card2)'};border-radius:var(--radius-sm);padding:14px;border:1px solid ${totalOwed>0?'rgba(230,57,70,0.4)':'var(--border)'};text-align:center">
+          <div style="font-size:11px;color:${totalOwed>0?'var(--danger)':'var(--text-secondary)'};margin-bottom:4px">BALANCE DUE</div>
+          <div style="font-size:20px;font-weight:800;color:${totalOwed>0?'var(--danger)':'var(--accent)'}">${UI.fmt.currency(totalOwed)}</div>
+        </div>
+      </div>
+      <div class="section-header"><span></span>
+        <button class="btn btn-sm btn-primary" onclick="addBill()">+ Add Bill</button>
+      </div>
+      ${bills.length === 0 ? UI.emptyState('No bills recorded for this patient','💰') :
+        `<div class="table-wrap"><table>
+          <thead><tr><th>Date</th><th>Description</th><th>Bill Amount</th><th>Paid</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+          ${bills.map(b => {
+            const balance = (b.totalAmount||0) - (b.amountPaid||0);
+            const isPaid = balance <= 0;
+            return `<tr style="${!isPaid?'background:rgba(230,57,70,0.04)':''}">
+              <td style="font-size:12px">${UI.fmt.date(b.date)}</td>
+              <td>${b.description||'—'}</td>
+              <td style="font-weight:600">${UI.fmt.currency(b.totalAmount||0)}</td>
+              <td style="color:var(--accent);font-weight:600">${UI.fmt.currency(b.amountPaid||0)}</td>
+              <td style="font-weight:800;color:${isPaid?'var(--accent)':'var(--danger)'}">${UI.fmt.currency(balance)}<br><span style="font-size:10px">${!isPaid?'⚠ Still Owed':''}</span></td>
+              <td>${UI.badge(isPaid?'Paid':'Unpaid', isPaid?'success':'danger')}</td>
+              <td>
+                <div style="display:flex;gap:4px">
+                  ${!isPaid ?`<button class="btn btn-xs btn-accent" onclick="recordPayment('${b.id}')">Pay</button>`:''}
+                  <button class="btn btn-xs btn-danger" onclick="deleteBill('${b.id}')">Del</button>
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+          </tbody></table></div>`}
+    `;
+
   } else if (tab === 'diagnoses') {
     el.innerHTML = `
       <div class="section-header"><span></span>
@@ -422,4 +481,90 @@ function saveVisit() {
   UI.toast('Visit recorded!', 'success');
   openPatientDetail(currentPatientId);
   switchPatientTab('visits');
+}
+
+// ===== BILLING FUNCTIONS =====
+function addBill() {
+  UI.modal.open('Add Bill', `
+    <div class="form-group"><label class="form-label">Description *</label>
+      <input class="form-control" id="billDesc" placeholder="e.g. Consultation, Lab tests, Medication" /></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Total Bill Amount (UGX) *</label>
+        <input class="form-control" id="billTotal" type="number" step="1" min="0" placeholder="0" /></div>
+      <div class="form-group"><label class="form-label">Amount Paid Now (UGX)</label>
+        <input class="form-control" id="billPaid" type="number" step="1" min="0" placeholder="0" value="0" /></div>
+    </div>
+    <div class="form-group"><label class="form-label">Notes</label>
+      <textarea class="form-control" id="billNotes" placeholder="Additional details..."></textarea></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn btn-outline" onclick="UI.modal.close();openPatientDetail('${currentPatientId}')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBill()">Save Bill</button>
+    </div>
+  `);
+}
+
+function saveBill() {
+  const desc = document.getElementById('billDesc').value.trim();
+  const totalAmount = parseFloat(document.getElementById('billTotal').value) || 0;
+  if (!desc) { UI.toast('Description required', 'error'); return; }
+  if (totalAmount <= 0) { UI.toast('Enter a valid total amount', 'error'); return; }
+  const amountPaid = Math.min(parseFloat(document.getElementById('billPaid').value) || 0, totalAmount);
+  const p = DB.getPatient(currentPatientId);
+  const list = p.bills || [];
+  list.unshift({
+    id: Date.now().toString(),
+    date: new Date().toISOString(),
+    description: desc,
+    totalAmount,
+    amountPaid,
+    notes: document.getElementById('billNotes').value
+  });
+  DB.updatePatient(currentPatientId, { bills: list });
+  UI.toast('Bill saved!', 'success');
+  openPatientDetail(currentPatientId);
+  switchPatientTab('billing');
+}
+
+function recordPayment(billId) {
+  const p = DB.getPatient(currentPatientId);
+  const bill = (p.bills || []).find(b => b.id === billId);
+  if (!bill) return;
+  const balance = (bill.totalAmount || 0) - (bill.amountPaid || 0);
+  UI.modal.open('Record Payment', `
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;color:var(--text-secondary)">Outstanding Balance</div>
+      <div style="font-size:28px;font-weight:800;color:var(--danger)">${UI.fmt.currency(balance)}</div>
+      <div style="font-size:12px;color:var(--text-muted)">for: ${bill.description}</div>
+    </div>
+    <div class="form-group"><label class="form-label">Amount Being Paid (UGX) *</label>
+      <input class="form-control" id="payAmount" type="number" step="1" min="1" max="${balance}" value="${balance}" placeholder="Amount" /></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn btn-outline" onclick="UI.modal.close();openPatientDetail('${currentPatientId}')">Cancel</button>
+      <button class="btn btn-accent" onclick="savePayment('${billId}')">Confirm Payment</button>
+    </div>
+  `);
+}
+
+function savePayment(billId) {
+  const amount = parseFloat(document.getElementById('payAmount').value) || 0;
+  if (amount <= 0) { UI.toast('Enter a valid amount', 'error'); return; }
+  const p = DB.getPatient(currentPatientId);
+  const bills = (p.bills || []).map(b => {
+    if (b.id !== billId) return b;
+    const newPaid = Math.min((b.amountPaid || 0) + amount, b.totalAmount);
+    return { ...b, amountPaid: newPaid };
+  });
+  DB.updatePatient(currentPatientId, { bills });
+  UI.toast('Payment recorded!', 'success');
+  openPatientDetail(currentPatientId);
+  switchPatientTab('billing');
+}
+
+function deleteBill(billId) {
+  if (!UI.confirm('Delete this bill?')) return;
+  const p = DB.getPatient(currentPatientId);
+  DB.updatePatient(currentPatientId, { bills: (p.bills || []).filter(b => b.id !== billId) });
+  UI.toast('Bill deleted', 'warning');
+  openPatientDetail(currentPatientId);
+  switchPatientTab('billing');
 }

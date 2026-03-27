@@ -105,15 +105,15 @@ function openNewSaleModal() {
       <input class="form-control" id="saleServedBy" value="${settings.doctorName||''}" placeholder="Staff name" /></div>
     <div class="divider"></div>
     <div class="form-row-3" style="margin-bottom:12px">
-      <div class="form-group"><label class="form-label">Drug</label>
-        <select class="form-control" id="saleDrugSel">
-          <option value="">Select drug...</option>
-          ${drugs.filter(d=>d.quantity>0).map(d=>`<option value="${d.id}" data-price="${d.price}" data-name="${d.name}" data-stock="${d.quantity}">${d.name} (${d.quantity})</option>`).join('')}
-        </select></div>
+      <div class="form-group"><label class="form-label">Drug / Item Name</label>
+        <input class="form-control" id="saleDrugName" list="saleDrugList" placeholder="Type drug name..." autocomplete="off" />
+        <datalist id="saleDrugList">
+          ${drugs.map(d=>`<option value="${d.name}" data-price="${d.price}" data-id="${d.id}" data-stock="${d.quantity}">${d.name} — Stock: ${d.quantity}</option>`).join('')}
+        </datalist></div>
       <div class="form-group"><label class="form-label">Qty</label>
         <input class="form-control" id="saleDrugQty" type="number" value="1" min="1" /></div>
-      <div class="form-group"><label class="form-label">Price</label>
-        <input class="form-control" id="saleDrugPrice" type="number" step="0.01" placeholder="Auto" /></div>
+      <div class="form-group"><label class="form-label">Price (UGX)</label>
+        <input class="form-control" id="saleDrugPrice" type="number" step="1" placeholder="Enter price" /></div>
     </div>
     <button class="btn btn-accent" style="margin-bottom:16px" onclick="addSaleItem()">+ Add Item</button>
     <div id="saleItemsTable">
@@ -121,7 +121,7 @@ function openNewSaleModal() {
       <div class="divider"></div>
       <div style="display:flex;justify-content:flex-end;align-items:center;gap:16px">
         <span style="font-size:13px;color:var(--text-secondary)">TOTAL</span>
-        <span style="font-size:24px;font-weight:800;color:var(--accent)" id="saleTotalDisplay">KES 0.00</span>
+        <span style="font-size:24px;font-weight:800;color:var(--accent)" id="saleTotalDisplay">UGX 0</span>
       </div>
     </div>
     <div class="divider"></div>
@@ -130,29 +130,41 @@ function openNewSaleModal() {
       <button class="btn btn-primary" onclick="completeSale()">Complete Sale 💳</button>
     </div>
   `);
-  // Auto-fill price when drug selected
-  document.getElementById('saleDrugSel').addEventListener('change', function() {
-    const opt = this.selectedOptions[0];
-    if (opt?.dataset.price) document.getElementById('saleDrugPrice').value = opt.dataset.price;
+  // Auto-fill price when a known drug is typed
+  document.getElementById('saleDrugName').addEventListener('input', function() {
+    const typed = this.value.trim().toLowerCase();
+    const match = drugs.find(d => d.name.toLowerCase() === typed);
+    if (match) document.getElementById('saleDrugPrice').value = match.price;
   });
   renderSaleItems();
 }
 
 function addSaleItem() {
-  const sel = document.getElementById('saleDrugSel');
-  const opt = sel.selectedOptions[0];
-  if (!opt || !opt.value) { UI.toast('Select a drug first', 'error'); return; }
+  const nameInput = document.getElementById('saleDrugName');
+  const drugName = nameInput.value.trim();
+  if (!drugName) { UI.toast('Enter a drug or item name', 'error'); return; }
   const qty = parseInt(document.getElementById('saleDrugQty').value) || 1;
-  const price = parseFloat(document.getElementById('saleDrugPrice').value) || parseFloat(opt.dataset.price) || 0;
-  const maxStock = parseInt(opt.dataset.stock) || 999;
-  if (qty > maxStock) { UI.toast(`Only ${maxStock} in stock!`, 'error'); return; }
-  const existing = saleItems.find(i => i.drugId === opt.value);
-  if (existing) {
+  const price = parseFloat(document.getElementById('saleDrugPrice').value) || 0;
+  if (price <= 0) { UI.toast('Enter a price greater than 0', 'error'); return; }
+  // Check if drug is in inventory and validate stock
+  const drugs = DB.getDrugs();
+  const match = drugs.find(d => d.name.toLowerCase() === drugName.toLowerCase());
+  if (match && qty > match.quantity) {
+    UI.toast(`Only ${match.quantity} units of '${match.name}' in stock!`, 'error'); return;
+  }
+  const drugId = match ? match.id : 'manual_' + Date.now();
+  const existing = saleItems.find(i => i.drugId === drugId && i.drugId !== 'manual_' + Date.now());
+  if (existing && match) {
     existing.qty += qty;
     existing.subtotal = existing.qty * existing.price;
   } else {
-    saleItems.push({ drugId: opt.value, drugName: opt.dataset.name, qty, price, subtotal: qty * price });
+    saleItems.push({ drugId, drugName, qty, price, subtotal: qty * price });
   }
+  // Clear inputs for next item
+  nameInput.value = '';
+  document.getElementById('saleDrugQty').value = '1';
+  document.getElementById('saleDrugPrice').value = '';
+  nameInput.focus();
   renderSaleItems();
 }
 
