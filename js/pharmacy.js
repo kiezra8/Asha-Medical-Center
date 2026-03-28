@@ -37,7 +37,7 @@ function renderPharmacy() {
     <div class="table-wrap">
       <table id="drugTable">
         <thead><tr>
-          <th>Drug Name</th><th>Category</th><th>Stock (Unit)</th>
+          <th>Drug Name</th><th>Category</th><th>Bought</th><th>Sold</th><th>Remaining</th>
           <th>Sell Price</th><th>Cost Price</th><th>Expiry</th><th>Status</th><th>Actions</th>
         </tr></thead>
         <tbody id="drugTableBody"></tbody>
@@ -63,6 +63,8 @@ function renderDrugTable(drugs) {
         <div class="stock-bar"><div class="stock-bar-fill" style="width:${pct}%;background:${color}"></div></div>
       </td>
       <td><span class="badge badge-info">${d.category||'—'}</span></td>
+      <td style="font-weight:600">${d.totalStocked || d.quantity} <span style="font-size:10px;color:var(--text-muted)">${d.unit||''}</span></td>
+      <td style="color:var(--warning);font-weight:600">${Math.max(0, (d.totalStocked || d.quantity) - d.quantity)} <span style="font-size:10px;color:var(--text-muted)">${d.unit||''}</span></td>
       <td><span style="font-weight:700;color:${color}">${d.quantity}</span> <span style="font-size:11px;color:var(--text-muted)">${d.unit||''}</span></td>
       <td>${UI.fmt.currency(d.price)}</td>
       <td>${UI.fmt.currency(d.costPrice)}</td>
@@ -159,10 +161,13 @@ function saveDrugNew() {
 function saveDrugEdit(id) {
   const name = document.getElementById('drName').value.trim();
   if (!name) { UI.toast('Drug name required', 'error'); return; }
+  const oldD = DB.getDrug(id);
+  const newQty = parseInt(document.getElementById('drQty').value) || 0;
   DB.updateDrug(id, {
     name, category: document.getElementById('drCat').value,
     unit: document.getElementById('drUnit').value,
-    quantity: parseInt(document.getElementById('drQty').value) || 0,
+    quantity: newQty,
+    totalStocked: (oldD.totalStocked || oldD.quantity) + Math.max(0, newQty - oldD.quantity),
     price: parseFloat(document.getElementById('drPrice').value) || 0,
     costPrice: parseFloat(document.getElementById('drCost').value) || 0,
     minStock: parseInt(document.getElementById('drMin').value) || 10,
@@ -223,9 +228,11 @@ function deleteDrugConfirm(id) {
 
 function exportInventory() {
   const drugs = DB.getDrugs();
-  let csv = 'Name,Category,Quantity,Unit,Sell Price,Cost Price,Min Stock,Expiry,Supplier\n';
+  let csv = 'Name,Category,Total Bought,Total Sold,Remaining,Unit,Sell Price,Cost Price,Min Stock,Expiry,Supplier\n';
   drugs.forEach(d => {
-    csv += `"${d.name}","${d.category||''}",${d.quantity},"${d.unit||''}",${d.price},${d.costPrice||0},${d.minStock||10},"${d.expiry||''}","${d.supplier||''}"\n`;
+    const bought = d.totalStocked || d.quantity;
+    const sold = Math.max(0, bought - d.quantity);
+    csv += `"${d.name}","${d.category||''}",${bought},${sold},${d.quantity},"${d.unit||''}",${d.price},${d.costPrice||0},${d.minStock||10},"${d.expiry||''}","${d.supplier||''}"\n`;
   });
   const blob = new Blob([csv], { type: 'text/csv' });
   const a = document.createElement('a');
