@@ -2,7 +2,7 @@
   "name": "Asha Medical Center",
   "short_name": "Asha Medical",
   "description": "Offline Clinic Management System for Asha Medical Center",
-  "start_url": "./index.html",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#0a0e1a",
   "theme_color": "#00b4d8",
