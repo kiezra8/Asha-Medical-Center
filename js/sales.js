@@ -265,26 +265,33 @@ function showReceipt(saleId) {
   if (!s) return;
   const settings = DB.getSettings();
   UI.modal.open('Receipt', `
-    <div style="text-align:center;margin-bottom:16px">
-      <div style="font-size:20px;font-weight:800;color:var(--primary)">${settings.clinicName}</div>
-      <div style="font-size:12px;color:var(--text-secondary)">${settings.address || ''} ${settings.phone ? '· Tel: '+settings.phone : ''}</div>
-      <div class="divider"></div>
-      <div style="font-size:12px;color:var(--text-secondary)">Receipt • ${UI.fmt.datetime(s.date)}</div>
+    <div id="receiptContentToPDF" style="background:#fff; color:#000; padding:16px; border-radius:8px">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:20px;font-weight:800;color:var(--primary)">${settings.clinicName}</div>
+        <div style="font-size:12px;color:#444">${settings.address || ''} ${settings.phone ? '· Tel: '+settings.phone : ''}</div>
+        <div class="divider" style="border-bottom-color:#eee"></div>
+        <div style="font-size:12px;color:#666">Receipt • ${UI.fmt.datetime(s.date)}</div>
+      </div>
+      <div class="table-wrap">
+        <table style="color:#000">
+          <thead style="background:#f8f9fa;color:#000;border-bottom:2px solid #ddd">
+            <tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr>
+          </thead>
+          <tbody>
+          ${(s.items || []).map(i => `<tr style="border-bottom:1px solid #eee"><td>${i.drugName||i.drug||'Item'}</td><td>${i.qty}</td><td>${UI.fmt.currency(i.price)}</td><td>${UI.fmt.currency(i.subtotal)}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="divider" style="border-bottom-color:#eee"></div>
+      <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:800;color:#000">
+        <span>TOTAL</span><span style="color:var(--accent)">${UI.fmt.currency(s.total)}</span>
+      </div>
+      <div style="font-size:13px;color:#555;margin-top:8px">
+        Patient: ${s.patientName || 'Walk-in'} · Payment: ${s.paymentMethod || 'Cash'} · Served by: ${s.servedBy || '—'}
+      </div>
+      <div class="divider" style="border-bottom-color:#eee"></div>
+      <div style="text-align:center;font-size:12px;color:#666">Thank you for visiting ${settings.clinicName}!</div>
     </div>
-    <div class="table-wrap">
-      <table><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>
-      ${(s.items || []).map(i => `<tr><td>${i.drugName||i.drug||'Item'}</td><td>${i.qty}</td><td>${UI.fmt.currency(i.price)}</td><td>${UI.fmt.currency(i.subtotal)}</td></tr>`).join('')}
-      </tbody></table>
-    </div>
-    <div class="divider"></div>
-    <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:800">
-      <span>TOTAL</span><span style="color:var(--accent)">${UI.fmt.currency(s.total)}</span>
-    </div>
-    <div style="font-size:13px;color:var(--text-secondary);margin-top:8px">
-      Patient: ${s.patientName || 'Walk-in'} · Payment: ${s.paymentMethod || 'Cash'} · Served by: ${s.servedBy || '—'}
-    </div>
-    <div class="divider"></div>
-    <div style="text-align:center;font-size:12px;color:var(--text-muted)">Thank you for visiting ${settings.clinicName}!</div>
     <div style="display:flex;justify-content:center;gap:12px;margin-top:16px">
       <button class="btn btn-outline" onclick="waShareReceipt('${saleId}')" style="color:#25D366;border-color:#25D366">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.298-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
@@ -300,13 +307,21 @@ function waShareReceipt(saleId) {
   const s = DB.getSales().find(x => x.id === saleId);
   if (!s) return;
   const settings = DB.getSettings();
-  let text = `*${settings.clinicName}*\n`;
-  text += `Receipt: ${UI.fmt.datetime(s.date)}\n\n`;
-  (s.items || []).forEach(i => {
-    text += `${i.drugName||'Item'} x${i.qty} - ${UI.fmt.currency(i.subtotal)}\n`;
-  });
-  text += `\n*TOTAL: ${UI.fmt.currency(s.total)}*\n`;
-  text += `Patient: ${s.patientName || 'Walk-in'}\n`;
+  
+  if (typeof html2pdf === 'undefined') {
+    UI.toast('PDF generator is loading... Please wait and try again.', 'warning');
+    return;
+  }
+  
+  const element = document.getElementById('receiptContentToPDF');
+  const filename = `receipt_${saleId}.pdf`;
+  const opt = {
+    margin: [10, 10, 10, 10],
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a5', orientation: 'portrait' }
+  };
   
   let phone = '';
   if (s.patientName && s.patientName !== 'Walk-in') {
@@ -318,8 +333,44 @@ function waShareReceipt(saleId) {
     }
   }
 
-  const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
-  window.open(url, '_blank');
+  const textMsg = `Medical Bill for ${s.patientName || 'Walk-in'} from ${settings.clinicName}`;
+
+  UI.toast('Generating PDF...', 'info');
+  
+  html2pdf().set(opt).from(element).output('blob').then(function(blob) {
+      const file = new File([blob], filename, { type: 'application/pdf' });
+      
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({
+              title: 'Medical Receipt',
+              text: textMsg,
+              files: [file]
+          }).catch(err => {
+              console.error('Share failed', err);
+              downloadAndOpenWA(blob, filename, phone, textMsg);
+          });
+      } else {
+          downloadAndOpenWA(blob, filename, phone, `Please find the attached receipt.`);
+      }
+  });
+}
+
+function downloadAndOpenWA(blob, filename, phone, textMsg) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    UI.toast('Receipt downloaded. Opening WhatsApp...', 'success');
+    
+    setTimeout(() => {
+       const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(textMsg)}`;
+       window.open(waUrl, '_blank');
+    }, 1500);
 }
 
 function printReceipt() { window.print(); }

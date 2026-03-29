@@ -279,7 +279,13 @@ function switchPatientTab(tab) {
         </div>
       </div>
       <div class="section-header"><span></span>
-        <button class="btn btn-sm btn-primary" onclick="addBill()">+ Add Bill</button>
+        <div style="display:flex;gap:8px">
+          ${totalOwed > 0 ? `<button class="btn btn-sm btn-outline" onclick="waShareStatement()" style="color:#25D366;border-color:#25D366" title="Send Account Statement">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.298-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+            Send WhatsApp Statement
+          </button>` : ''}
+          <button class="btn btn-sm btn-primary" onclick="addBill()">+ Add Bill</button>
+        </div>
       </div>
       ${bills.length === 0 ? UI.emptyState('No bills recorded for this patient','💰') :
         `<div class="table-wrap"><table>
@@ -297,7 +303,7 @@ function switchPatientTab(tab) {
               <td>${UI.badge(isPaid?'Paid':'Unpaid', isPaid?'success':'danger')}</td>
               <td>
                 <div style="display:flex;gap:4px">
-                  <button class="btn btn-xs btn-outline" onclick="waShareBill('${b.id}')" style="color:#25D366;border-color:#25D366" title="WhatsApp"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.298-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></button>
+                  <button class="btn btn-xs btn-outline" onclick="waShareBill('${b.id}')" style="color:#25D366;border-color:#25D366;display:flex;align-items:center;gap:4px" title="WhatsApp Share"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.298-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg> WA</button>
                   ${!isPaid ?`<button class="btn btn-xs btn-accent" onclick="recordPayment('${b.id}')">Pay</button>`:''}
                   <button class="btn btn-xs btn-danger" onclick="deleteBill('${b.id}')">Del</button>
                 </div>
@@ -631,4 +637,127 @@ function waShareBill(billId) {
 
   const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
   window.open(url, '_blank');
+}
+
+function waShareStatement() {
+  const p = DB.getPatient(currentPatientId);
+  if (!p) return;
+  
+  if (typeof html2pdf === 'undefined') {
+    UI.toast('PDF generator is loading... Please wait.', 'warning');
+    return;
+  }
+  
+  const bills = p.bills || [];
+  const totalBilled = bills.reduce((s,b) => s + (b.totalAmount||0), 0);
+  const totalPaid   = bills.reduce((s,b) => s + (b.amountPaid||0), 0);
+  const balance     = totalBilled - totalPaid;
+  const settings    = DB.getSettings();
+
+  const unpaidBills = bills.filter(b => (b.totalAmount || 0) - (b.amountPaid || 0) > 0);
+  let breakDownHtml = '';
+  if (unpaidBills.length > 0) {
+    breakDownHtml = `
+      <div style="margin-top:20px;text-align:left">
+        <div style="font-weight:700;margin-bottom:8px;font-size:14px;border-bottom:1px solid #ccc;padding-bottom:4px">Pending Breakdown:</div>
+        <table style="width:100%;font-size:12px;text-align:left;border-collapse:collapse">
+          <thead>
+            <tr style="border-bottom:1px solid #eee"><th>Date</th><th>Description</th><th style="text-align:right">Balance due</th></tr>
+          </thead>
+          <tbody>
+            ${unpaidBills.map(b => `<tr>
+              <td style="padding:4px 0">${UI.fmt.date(b.date)}</td>
+              <td>${b.description}</td>
+              <td style="text-align:right">${UI.fmt.currency((b.totalAmount||0) - (b.amountPaid||0))}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // Create temporary container for PDF rendering
+  const tempDiv = document.createElement('div');
+  tempDiv.style.position = 'absolute';
+  tempDiv.style.left = '-9999px';
+  tempDiv.style.top = '0';
+  document.body.appendChild(tempDiv);
+
+  tempDiv.innerHTML = `
+    <div style="background:#fff; color:#000; padding:30px; width:400px; font-family:sans-serif">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:24px;font-weight:800;color:#000">${settings.clinicName}</div>
+        <div style="font-size:12px;color:#444">${settings.address || ''} ${settings.phone ? '· Tel: '+settings.phone : ''}</div>
+        <div style="margin:16px 0; border-bottom:2px dashed #ccc"></div>
+        <div style="font-size:16px;font-weight:700;text-transform:uppercase">Account Statement</div>
+        <div style="font-size:12px;color:#666;margin-top:4px">Date: ${UI.fmt.date(new Date().toISOString())}</div>
+      </div>
+      <div style="font-size:14px; margin-bottom: 20px">
+        <strong>Patient Name:</strong> ${p.name}<br>
+        <strong>Patient ID:</strong> ${p.id.substring(0,8).toUpperCase()}<br>
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px;">
+        <span>Total Billed:</span>
+        <span style="font-weight:600">${UI.fmt.currency(totalBilled)}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:16px; font-size:14px;">
+        <span>Total Paid:</span>
+        <span style="font-weight:600; color:green">${UI.fmt.currency(totalPaid)}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:18px; font-weight:800; padding:12px 0; border-top:2px solid #000; border-bottom:2px solid #000">
+        <span>BALANCE DUE:</span>
+        <span>${UI.fmt.currency(balance)}</span>
+      </div>
+      ${breakDownHtml}
+      <div style="margin-top:40px; text-align:center; font-size:12px; color:#666">
+        Thank you for choosing ${settings.clinicName}.
+      </div>
+    </div>
+  `;
+
+  let phone = '';
+  if (p.phone) {
+     phone = p.phone;
+     if (phone.startsWith('0')) phone = '+256' + phone.substring(1);
+     phone = phone.replace(/[^\d+]/g, '');
+  }
+
+  const filename = `statement_${p.name.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+  const textMsg = `Account Statement for ${p.name} from ${settings.clinicName}`;
+  
+  UI.toast('Generating PDF...', 'info');
+
+  html2pdf().set({
+    margin: [10, 10, 10, 10],
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a5', orientation: 'portrait' }
+  }).from(tempDiv.firstElementChild).output('blob').then(function(blob) {
+      document.body.removeChild(tempDiv);
+      const file = new File([blob], filename, { type: 'application/pdf' });
+      
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({ title: 'Account Statement', text: textMsg, files: [file] })
+          .catch(err => downloadAndOpenWAPatient(blob, filename, phone, textMsg));
+      } else {
+          downloadAndOpenWAPatient(blob, filename, phone, `Attached is your account statement.`);
+      }
+  });
+}
+
+function downloadAndOpenWAPatient(blob, filename, phone, textMsg) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    UI.toast('Statement downloaded. Opening WhatsApp...', 'success');
+    setTimeout(() => {
+       const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(textMsg)}`;
+       window.open(waUrl, '_blank');
+    }, 1500);
 }
