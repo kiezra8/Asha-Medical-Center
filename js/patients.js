@@ -668,17 +668,21 @@ function waShareStatement() {
   let breakDownHtml = '';
   if (unpaidBills.length > 0) {
     breakDownHtml = `
-      <div style="margin-top:20px;text-align:left">
-        <div style="font-weight:700;margin-bottom:8px;font-size:14px;border-bottom:1px solid #ccc;padding-bottom:4px">Pending Breakdown:</div>
-        <table style="width:100%;font-size:12px;text-align:left;border-collapse:collapse">
+      <div style="margin-top:20px;">
+        <div style="font-size:16px; font-weight:800; color:#222; border-bottom:2px solid #ddd; padding-bottom:8px; margin-bottom:16px">Pending Bills Breakdown</div>
+        <table style="width:100%; font-size:13px; text-align:left; border-collapse:collapse">
           <thead>
-            <tr style="border-bottom:1px solid #eee"><th>Date</th><th>Description</th><th style="text-align:right">Balance due</th></tr>
+            <tr style="background:#f8f9fa; color:#555; text-transform:uppercase; font-size:11px; letter-spacing:0.5px">
+              <th style="padding:10px; border-bottom:2px solid #ddd">Date</th>
+              <th style="padding:10px; border-bottom:2px solid #ddd">Description</th>
+              <th style="padding:10px; border-bottom:2px solid #ddd; text-align:right">Amount Due</th>
+            </tr>
           </thead>
           <tbody>
-            ${unpaidBills.map(b => `<tr>
-              <td style="padding:4px 0">${UI.fmt.date(b.date)}</td>
-              <td>${b.description}</td>
-              <td style="text-align:right">${UI.fmt.currency((b.totalAmount||0) - (b.amountPaid||0))}</td>
+            ${unpaidBills.map(b => `<tr style="border-bottom:1px solid #eee">
+              <td style="padding:12px 10px; color:#555">${UI.fmt.date(b.date)}</td>
+              <td style="padding:12px 10px; font-weight:500">${b.description}</td>
+              <td style="padding:12px 10px; text-align:right; font-weight:700; color:#222">${UI.fmt.currency((b.totalAmount||0) - (b.amountPaid||0))}</td>
             </tr>`).join('')}
           </tbody>
         </table>
@@ -694,33 +698,49 @@ function waShareStatement() {
   document.body.appendChild(tempDiv);
 
   tempDiv.innerHTML = `
-    <div style="background:#fff; color:#000; padding:30px; width:400px; font-family:sans-serif">
-      <div style="text-align:center;margin-bottom:16px">
-        <div style="font-size:24px;font-weight:800;color:#000">${settings.clinicName}</div>
-        <div style="font-size:12px;color:#444">${settings.address || ''} ${settings.phone ? '· Tel: '+settings.phone : ''}</div>
-        <div style="margin:16px 0; border-bottom:2px dashed #ccc"></div>
-        <div style="font-size:16px;font-weight:700;text-transform:uppercase">Account Statement</div>
-        <div style="font-size:12px;color:#666;margin-top:4px">Date: ${UI.fmt.date(new Date().toISOString())}</div>
+    <div style="background:#fff; color:#333; padding:50px; width:800px; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif;">
+      <!-- Header -->
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid var(--primary, #00b4d8); padding-bottom:20px; margin-bottom:30px">
+        <div>
+          <div style="font-size:32px;font-weight:900;color:var(--primary, #00b4d8);letter-spacing:-0.5px">${settings.clinicName}</div>
+          <div style="font-size:13px;color:#666;margin-top:4px">${settings.address || 'Medical Facility'}</div>
+          ${settings.phone ? `<div style="font-size:13px;color:#666;margin-top:2px">Contact: ${settings.phone}</div>` : ''}
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:24px;font-weight:300;color:#999;text-transform:uppercase;letter-spacing:1px">Statement of Account</div>
+          <div style="font-size:12px;color:#555;margin-top:8px"><strong>Date:</strong> ${UI.fmt.date(new Date().toISOString())}</div>
+          <div style="font-size:12px;color:#555;margin-top:4px"><strong>Patient ID:</strong> ${p.id.substring(0,8).toUpperCase()}</div>
+        </div>
       </div>
-      <div style="font-size:14px; margin-bottom: 20px">
-        <strong>Patient Name:</strong> ${p.name}<br>
-        <strong>Patient ID:</strong> ${p.id.substring(0,8).toUpperCase()}<br>
+      
+      <!-- Billed To -->
+      <div style="margin-bottom: 30px;">
+        <div style="font-size:12px; font-weight:700; color:#777; text-transform:uppercase; margin-bottom:4px">Billed To:</div>
+        <div style="font-size:16px; font-weight:800; color:#222">${p.name}</div>
+        <div style="font-size:14px; color:#555">${p.phone||''}</div>
       </div>
-      <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px;">
-        <span>Total Billed:</span>
-        <span style="font-weight:600">${UI.fmt.currency(totalBilled)}</span>
+      
+      <!-- Statement Summary -->
+      <div style="display:flex; justify-content:space-between; background:#f4f7f9; border-radius:8px; padding:20px; margin-bottom:40px">
+        <div style="text-align:center">
+           <div style="font-size:12px; color:#666; text-transform:uppercase; margin-bottom:4px">Total Billed</div>
+           <div style="font-size:18px; font-weight:700; color:#333">${UI.fmt.currency(totalBilled)}</div>
+        </div>
+        <div style="text-align:center">
+           <div style="font-size:12px; color:#666; text-transform:uppercase; margin-bottom:4px">Total Paid</div>
+           <div style="font-size:18px; font-weight:700; color:var(--success, #2a9d8f)">${UI.fmt.currency(totalPaid)}</div>
+        </div>
+        <div style="text-align:center; padding-left:20px; border-left:1px solid #ddd">
+           <div style="font-size:12px; color:var(--danger, #e63946); font-weight:700; text-transform:uppercase; margin-bottom:4px">Amount Due</div>
+           <div style="font-size:24px; font-weight:900; color:var(--danger, #e63946)">${UI.fmt.currency(balance)}</div>
+        </div>
       </div>
-      <div style="display:flex; justify-content:space-between; margin-bottom:16px; font-size:14px;">
-        <span>Total Paid:</span>
-        <span style="font-weight:600; color:green">${UI.fmt.currency(totalPaid)}</span>
-      </div>
-      <div style="display:flex; justify-content:space-between; font-size:18px; font-weight:800; padding:12px 0; border-top:2px solid #000; border-bottom:2px solid #000">
-        <span>BALANCE DUE:</span>
-        <span>${UI.fmt.currency(balance)}</span>
-      </div>
+
       ${breakDownHtml}
-      <div style="margin-top:40px; text-align:center; font-size:12px; color:#666">
-        Thank you for choosing ${settings.clinicName}.
+      
+      <!-- Footer -->
+      <div style="margin-top:80px; padding-top:20px; border-top:1px solid #eee; text-align:center; font-size:12px; color:#777">
+         Thank you for choosing ${settings.clinicName}. If you have any questions regarding this statement, please contact us.
       </div>
     </div>
   `;
@@ -786,23 +806,35 @@ function waShareMedicalRecord(pId) {
   let hxHtml = '';
   
   if (p.diagnoses && p.diagnoses.length) {
-    hxHtml += `<div style="font-weight:700;margin-top:20px;margin-bottom:8px;font-size:14px;border-bottom:1px solid #ccc;padding-bottom:4px">Diagnoses</div>`;
+    hxHtml += `<div style="font-size:16px; font-weight:800; color:#222; border-bottom:2px solid #eee; padding-bottom:6px; margin-top:24px; margin-bottom:12px">Diagnoses</div>`;
     p.diagnoses.forEach(d => {
-      hxHtml += `<div style="margin-bottom:8px;font-size:12px"><strong>${UI.fmt.date(d.date)}:</strong> ${d.diagnosis} (Dr. ${d.doctor||'-'})<br><span style="color:#555">${d.notes||''}</span></div>`;
+      hxHtml += `<div style="background:#f9fbfc; border-left:3px solid var(--primary, #00b4d8); padding:10px 14px; margin-bottom:10px; border-radius:0 4px 4px 0">
+         <div style="font-size:14px; font-weight:700; color:#222">${d.diagnosis} <span style="font-weight:400; color:#777; font-size:12px; margin-left:8px">(Dr. ${d.doctor||'—'})</span></div>
+         <div style="font-size:11px; color:#666; margin-top:4px">Recorded: ${UI.fmt.date(d.date)}</div>
+         ${d.notes ? `<div style="font-size:13px; color:#444; margin-top:6px">${d.notes}</div>` : ''}
+      </div>`;
     });
   }
   
   if (p.treatments && p.treatments.length) {
-    hxHtml += `<div style="font-weight:700;margin-top:20px;margin-bottom:8px;font-size:14px;border-bottom:1px solid #ccc;padding-bottom:4px">Treatments</div>`;
+    hxHtml += `<div style="font-size:16px; font-weight:800; color:#222; border-bottom:2px solid #eee; padding-bottom:6px; margin-top:24px; margin-bottom:12px">Treatments</div>`;
     p.treatments.forEach(t => {
-      hxHtml += `<div style="margin-bottom:8px;font-size:12px"><strong>${UI.fmt.date(t.date)}:</strong> ${t.treatment} [${t.status||'ongoing'}]<br><span style="color:#555">${t.notes||''}</span></div>`;
+      const isDone = t.status === 'completed';
+      hxHtml += `<div style="background:#f9fbfc; border-left:3px solid ${isDone?'#2a9d8f':'#f4a261'}; padding:10px 14px; margin-bottom:10px; border-radius:0 4px 4px 0">
+         <div style="font-size:14px; font-weight:700; color:#222">${t.treatment} <span style="font-weight:600; font-size:10px; margin-left:8px; padding:2px 6px; background:${isDone?'#e6f4ea':'#fff3e0'}; color:${isDone?'#1e8e3e':'#e65100'}; border-radius:12px; text-transform:uppercase">${t.status||'ongoing'}</span></div>
+         <div style="font-size:11px; color:#666; margin-top:4px">Started: ${UI.fmt.date(t.date)}</div>
+         ${t.notes ? `<div style="font-size:13px; color:#444; margin-top:6px">${t.notes}</div>` : ''}
+      </div>`;
     });
   }
   
   if (p.prescriptions && p.prescriptions.length) {
-    hxHtml += `<div style="font-weight:700;margin-top:20px;margin-bottom:8px;font-size:14px;border-bottom:1px solid #ccc;padding-bottom:4px">Prescriptions</div>`;
+    hxHtml += `<div style="font-size:16px; font-weight:800; color:#222; border-bottom:2px solid #eee; padding-bottom:6px; margin-top:24px; margin-bottom:12px">Prescriptions</div>`;
     p.prescriptions.forEach(rx => {
-      hxHtml += `<div style="margin-bottom:8px;font-size:12px"><strong>${UI.fmt.date(rx.date)}:</strong> ${rx.drug} - ${rx.dosage} (${rx.duration})</div>`;
+      hxHtml += `<div style="background:#f9fbfc; border-left:3px solid #6c757d; padding:10px 14px; margin-bottom:10px; border-radius:0 4px 4px 0">
+         <div style="font-size:14px; font-weight:700; color:#222">${rx.drug} <span style="font-weight:400; color:#777; font-size:12px; margin-left:8px">${rx.dosage} (${rx.duration})</span></div>
+         <div style="font-size:11px; color:#666; margin-top:4px">Prescribed: ${UI.fmt.date(rx.date)}</div>
+      </div>`;
     });
   }
 
@@ -814,36 +846,52 @@ function waShareMedicalRecord(pId) {
   document.body.appendChild(tempDiv);
 
   tempDiv.innerHTML = `
-    <div style="background:#fff; color:#000; padding:40px; width:600px; font-family:sans-serif">
-      <div style="text-align:center;margin-bottom:24px">
-        <div style="font-size:26px;font-weight:800;color:#000">${settings.clinicName}</div>
-        <div style="font-size:14px;color:#444">${settings.address || ''} ${settings.phone ? '· Tel: '+settings.phone : ''}</div>
-        <div style="margin:20px 0; border-bottom:2px solid #000"></div>
-        <div style="font-size:20px;font-weight:700;text-transform:uppercase;color:#000">CONFIDENTIAL MEDICAL RECORD</div>
-        <div style="font-size:12px;color:#666;margin-top:6px">Generated Date: ${UI.fmt.date(new Date().toISOString())}</div>
+    <div style="background:#fff; color:#333; padding:50px; width:800px; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif;">
+      <!-- Header Area -->
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid var(--primary, #00b4d8); padding-bottom:20px; margin-bottom:30px">
+        <div>
+          <div style="font-size:32px;font-weight:900;color:var(--primary, #00b4d8);letter-spacing:-0.5px">${settings.clinicName}</div>
+          <div style="font-size:13px;color:#666;margin-top:4px">${settings.address || 'Medical Facility'}</div>
+          ${settings.phone ? `<div style="font-size:13px;color:#666;margin-top:2px">Contact: ${settings.phone}</div>` : ''}
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:24px;font-weight:300;color:#999;text-transform:uppercase;letter-spacing:1px">Medical Record</div>
+          <div style="font-size:12px;color:#555;margin-top:8px"><strong>Date:</strong> ${UI.fmt.date(new Date().toISOString())}</div>
+          <div style="font-size:12px;color:#555;margin-top:4px"><strong>Record #:</strong> REC-${p.id.substring(0,6).toUpperCase()}</div>
+        </div>
       </div>
       
-      <div style="background:#f8f9fa; padding:16px; border:1px solid #ddd; margin-bottom: 24px;">
-        <div style="font-size:18px; font-weight:800; margin-bottom:12px">Patient Demographics</div>
-        <table style="width:100%; font-size:14px; text-align:left">
-          <tr><td style="width:30%"><strong>Name:</strong></td><td>${p.name}</td></tr>
-          <tr><td><strong>ID / Age:</strong></td><td>${p.id.substring(0,8).toUpperCase()} / ${p.age ? p.age + 'yrs' : '—'}</td></tr>
-          <tr><td><strong>Gender / Blood:</strong></td><td>${p.gender||'—'} / ${p.bloodGroup||'—'}</td></tr>
-          <tr><td><strong>Phone / Address:</strong></td><td>${p.phone||'—'} / ${p.address||'—'}</td></tr>
-          <tr><td><strong>Allergies:</strong></td><td style="color:red;font-weight:bold">${p.allergies||'None Known'}</td></tr>
-        </table>
+      <!-- Patient Demographics Grid -->
+      <div style="background:#f4f7f9; border-radius:8px; padding:20px; margin-bottom: 30px; border-left:4px solid var(--primary, #00b4d8)">
+        <div style="font-size:12px; font-weight:700; color:#555; text-transform:uppercase; letter-spacing:1px; margin-bottom:16px">Patient Information</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; font-size:14px">
+          <div><span style="color:#777;font-size:11px;text-transform:uppercase;display:block;margin-bottom:2px">Full Name</span><strong>${p.name}</strong></div>
+          <div><span style="color:#777;font-size:11px;text-transform:uppercase;display:block;margin-bottom:2px">Patient ID</span><strong>${p.id.substring(0,8).toUpperCase()}</strong></div>
+          <div><span style="color:#777;font-size:11px;text-transform:uppercase;display:block;margin-bottom:2px">Age & Gender</span><strong>${p.age ? p.age + ' Years' : 'N/A'} · ${p.gender||'N/A'}</strong></div>
+          <div><span style="color:#777;font-size:11px;text-transform:uppercase;display:block;margin-bottom:2px">Blood Group</span><strong>${p.bloodGroup||'Unknown'}</strong></div>
+          <div><span style="color:#777;font-size:11px;text-transform:uppercase;display:block;margin-bottom:2px">Contact Phone</span><strong>${p.phone||'N/A'}</strong></div>
+          <div><span style="color:#777;font-size:11px;text-transform:uppercase;display:block;margin-bottom:2px">Allergies</span><strong style="color:var(--danger, #e63946)">${p.allergies||'None Known'}</strong></div>
+        </div>
       </div>
 
-      <div style="font-size:14px; line-height:1.5">
-        <div style="font-weight:700;margin-bottom:8px;font-size:14px;border-bottom:1px solid #ccc;padding-bottom:4px">General Medical History</div>
-        <div style="margin-bottom:16px; font-size:12px">${p.medicalHistory || 'No significant prior history recorded.'}</div>
+      <!-- Medical Content -->
+      <div style="font-size:14px; line-height:1.6">
+        <div style="font-weight:800; font-size:16px; color:#222; border-bottom:1px solid #ddd; padding-bottom:8px; margin-bottom:12px">General Medical History</div>
+        <div style="margin-bottom:24px; font-size:14px; color:#444">${p.medicalHistory || 'No significant prior history recorded.'}</div>
         
-        ${hxHtml || '<div style="font-size:12px;color:#555;margin-top:20px">No active clinical records (diagnoses/treatments) found in system.</div>'}
+        ${hxHtml || '<div style="font-size:13px;color:#777;margin-top:30px;font-style:italic">No active clinical records (diagnoses/treatments) found in system.</div>'}
       </div>
       
-      <div style="margin-top:60px; text-align:center; font-size:12px; color:#666; border-top:1px dashed #ccc; padding-top:20px">
-        This document is an official system extract provided by ${settings.clinicName}.<br>
-        Confidentiality Notice: The information contained in this document is strictly confidential.
+      <!-- Footer -->
+      <div style="margin-top:80px; padding-top:20px; border-top:1px solid #eee; display:flex; justify-content:space-between; align-items:flex-end">
+         <div style="font-size:11px; color:#777; max-width:60%">
+            <strong>Confidentiality Notice:</strong><br>
+            This document contains privileged and confidential medical information intended only for the use of the patient or authorized entities.
+         </div>
+         <div style="text-align:center">
+            <div style="border-bottom:1px solid #000; width:150px; margin-bottom:8px"></div>
+            <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#555">Authorized Signature</div>
+         </div>
       </div>
     </div>
   `;
